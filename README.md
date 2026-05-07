@@ -14,3 +14,27 @@ Here are some ideas to get you started:
 - 😄 Pronouns: ...
 - ⚡ Fun fact: ...
 -->
+
+# SynZIF-8: Code Repository
+
+This repository accompanies the SynZIF-8 dataset and benchmark paper.
+
+## Status
+
+The full code release (data generation pipeline, baseline training scripts, evaluation code, and trained checkpoints) will be made available **upon acceptance** alongside the camera-ready version, by the camera-ready deadline.
+
+## Dataset
+
+The SynZIF-8 dataset is publicly available at:
+https://huggingface.co/datasets/synzif8/SynZIF-8
+
+## Repository Structure (planned)
+
+- `render/` — 3D rendering pipeline
+- `stylization/` — ControlNet + LoRA SEM stylization  
+- `baselines/` — Training scripts for 9 baseline models
+- `evaluation/` — Edge-length RRMSE and MPJPE evaluation
+
+## License
+
+MIT (code), CC-BY-4.0 (dataset)
