@@ -1,0 +1,35 @@
+{
+  "seed": 20260425,
+  "viz_sub_seed": 20260426,
+  "counts": {
+    "train": {
+      "n_scenes": 4000,
+      "n_instances": 91051
+    },
+    "val": {
+      "n_scenes": 500,
+      "n_instances": 11368
+    },
+    "test": {
+      "n_scenes": 500,
+      "n_instances": 11379
+    },
+    "val_viz": {
+      "n_instances": 5
+    }
+  },
+  "sha256": {
+    "train": "47ed8d23804534d1d700961997fb3e6c927080dfa633b9b0ed8b19cdbe0ae820",
+    "val": "68244dde3925bd44a86837d6c9e5bf2e9603b95c696648eb069c8693ee35d890",
+    "test": "26edb6dc8d5ddcae273ac16cc107f82e1eae2dd7957c6fa4dc0c915187d9e34e",
+    "val_viz": "482fb34fd7cdf9ddadc6be4b7381ba71652c3c51fc8c00898c74044050adb9ba"
+  },
+  "paths": {
+    "train": "<PROJECT_ROOT>/baselines/phase0_common/splits/train.txt",
+    "val": "<PROJECT_ROOT>/baselines/phase0_common/splits/val.txt",
+    "test": "<PROJECT_ROOT>/baselines/phase0_common/splits/test.txt",
+    "val_viz": "<PROJECT_ROOT>/baselines/phase0_common/splits/val_viz.txt"
+  },
+  "dataset_dir": "<DATA_ROOT>/dataset_v6",
+  "schema_version": 1
+}

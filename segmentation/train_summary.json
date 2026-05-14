@@ -1,0 +1,5 @@
+{
+  "best_epoch": 105,
+  "best_val_iou": 0.9738877497692945,
+  "total_epochs": 120
+}

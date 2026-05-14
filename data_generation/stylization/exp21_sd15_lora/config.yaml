@@ -1,0 +1,43 @@
+seed: 42
+device: "cuda:0"
+
+models:
+  sd: "stable-diffusion-v1-5/stable-diffusion-v1-5"
+  controlnet: "lllyasviel/sd-controlnet-canny"
+
+data:
+  train_sem: "../SEM_dev_70"
+  test_render: "../../dataset_v5"
+  test_sem: "../SEM_dev_70"
+
+lora:
+  rank: 64
+  alpha: 64
+  target_modules: ["to_q", "to_k", "to_v", "to_out.0",
+                   "conv1", "conv2", "conv_shortcut",
+                   "proj_in", "proj_out"]
+  dropout: 0.05
+  lr: 5.0e-5
+  epochs: 1000
+  batch_size: 1
+  gradient_accumulation: 4
+  resolution: 512
+  save_every: 250
+
+inference:
+  ddim_steps: 50
+  strength: 0.85
+  guidance_scale: 15.0
+  controlnet_scale: 1.5
+  canny_low: 20
+  canny_high: 100
+  num_test: 10
+
+prompt: "high quality SEM micrograph, scanning electron microscopy, grayscale, crystalline particles with edge charging effect, detailed grain texture, substrate background texture, scientific imaging"
+negative_prompt: "blurry, smooth, flat shading, pure black background, cartoon, painting, colorful, low quality, rendered, CGI, computer generated, synthetic"
+
+augmentation:
+  horizontal_flip: true
+  brightness_jitter: 0.15
+  contrast_jitter: 0.15
+  gaussian_noise: 5.0

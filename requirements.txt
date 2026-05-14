@@ -1,0 +1,50 @@
+# SynZIF-8 — combined requirements
+# (Foundation-pose baselines have their own additional requirements;
+#  see baselines/foundation_pose/*/external/requirements.txt or environment.yml.)
+
+# Core
+numpy>=1.23
+scipy>=1.10
+pandas>=2.0
+matplotlib>=3.7
+seaborn>=0.12
+tqdm>=4.65
+pyyaml>=6.0
+pillow>=10.0
+
+# Computer vision
+opencv-python>=4.8
+scikit-image>=0.21
+imageio>=2.31
+
+# Deep learning (PyTorch ecosystem)
+torch>=2.0
+torchvision>=0.15
+timm>=0.9.0
+
+# Stable Diffusion (stylization)
+diffusers>=0.24
+transformers>=4.35
+peft>=0.6
+accelerate>=0.24
+xformers; platform_system != "Windows"
+
+# Annotation tool
+fastapi>=0.104
+uvicorn[standard]>=0.24
+python-multipart>=0.0.6
+
+# Notebooks
+jupyter>=1.0
+ipykernel>=6.25
+ipython>=8.15
+
+# Evaluation
+scikit-learn>=1.3
+networkx>=3.1   # for graph-based ops
+openpyxl>=3.1   # Excel export
+
+# 3D
+trimesh>=4.0
+pyrender>=0.1.45    # optional; only used by some renderers
+plyfile>=1.0

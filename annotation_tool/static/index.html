@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhombic Vertex Annotator</title>
+<style>
+:root{--bg:#0f1117;--card:#1a1d27;--border:#2d3148;--accent:#4f8cff;--accent2:#7c4dff;
+--text:#e8eaed;--text2:#9aa0b0;--success:#4caf50;--warn:#ff9800;--danger:#ef5350}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+/* Header */
+.header{background:linear-gradient(135deg,#1a237e,#4a148c);padding:14px 24px;display:flex;
+  align-items:center;gap:16px;flex-shrink:0}
+.header h1{font-size:20px;letter-spacing:.5px}
+.header .info{font-size:12px;color:rgba(255,255,255,.6)}
+.header .stats{margin-left:auto;display:flex;gap:16px;font-size:12px;color:rgba(255,255,255,.7)}
+.header .stats span{background:rgba(255,255,255,.1);padding:4px 12px;border-radius:12px}
+
+/* 3-column layout */
+.main{display:flex;flex:1;min-height:0}
+
+/* Left panel */
+.left-panel{width:220px;background:var(--card);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0}
+.panel-head{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:8px}
+.image-list{flex:1;overflow-y:auto;padding:4px}
+.image-item{padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;
+  display:flex;align-items:center;gap:8px;transition:background .15s;margin:2px 0}
+.image-item:hover{background:rgba(79,140,255,.1)}
+.image-item.active{background:rgba(79,140,255,.2);border-left:3px solid var(--accent)}
+.image-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.image-item .badge{background:var(--success);color:#fff;font-size:10px;padding:2px 6px;
+  border-radius:8px;min-width:18px;text-align:center}
+.image-item .badge.empty{background:var(--border);color:var(--text2)}
+
+/* Center */
+.center-panel{flex:1;display:flex;flex-direction:column;min-width:0}
+.canvas-toolbar{padding:6px 14px;border-bottom:1px solid var(--border);background:var(--card);
+  display:flex;align-items:center;gap:12px;font-size:12px;flex-shrink:0}
+.mode-badge{padding:4px 12px;border-radius:12px;font-weight:600;font-size:11px}
+.mode-badge.select{background:rgba(79,140,255,.2);color:var(--accent)}
+.mode-badge.filter{background:rgba(255,152,0,.2);color:var(--warn)}
+.mode-badge.annotate{background:rgba(76,175,80,.2);color:var(--success)}
+.toolbar-sep{width:1px;height:20px;background:var(--border)}
+.coord-display{color:var(--text2);font-family:monospace}
+.toolbar-hint{color:var(--text2);margin-left:auto;font-size:11px}
+.canvas-container{flex:1;position:relative;overflow:hidden;background:#000;cursor:crosshair}
+.canvas-container canvas{position:absolute;top:0;left:0}
+
+/* Right panel */
+.right-panel{width:320px;background:var(--card);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0}
+.rhombic-list{flex:1;overflow-y:auto;padding:4px}
+.rhombic-item{padding:8px 10px;margin:3px 4px;border-radius:8px;border:1px solid var(--border);
+  cursor:pointer;transition:all .15s;font-size:12px}
+.rhombic-item:hover{border-color:var(--accent);background:rgba(79,140,255,.05)}
+.rhombic-item.active{border-color:#fff;background:rgba(255,255,255,.08)}
+.rhombic-item.has-vertices{border-color:var(--success)}
+.rhombic-item.excluded{opacity:.35;border-color:var(--danger);border-style:dashed;
+  background:rgba(239,83,80,.05)}
+.rhombic-item.excluded:hover{opacity:.6}
+.rhombic-header{display:flex;align-items:center;gap:8px}
+.rhombic-idx{font-weight:700;font-size:13px}
+.rhombic-score{color:var(--text2)}
+.rhombic-vcount{margin-left:auto;color:var(--success);font-weight:600}
+.rhombic-excl-badge{margin-left:auto;color:var(--danger);font-size:10px;font-weight:600}
+
+/* Vertex panel */
+.vertex-panel{border-top:1px solid var(--border);max-height:40%;overflow-y:auto;padding:8px}
+.vertex-panel-head{padding:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.vertex-panel-head .actions{margin-left:auto;display:flex;gap:4px}
+.vertex-table{width:100%;border-collapse:collapse;font-size:12px}
+.vertex-table th,.vertex-table td{padding:4px 8px;text-align:right;border-bottom:1px solid var(--border)}
+.vertex-table th{color:var(--accent);font-weight:600;text-align:left}
+.vertex-empty{color:var(--text2);text-align:center;padding:16px;font-size:12px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:6px;
+  font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,140,255,.3)}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#43a047}
+.btn-warn{background:var(--warn);color:#fff}
+.btn-warn:hover{background:#f57c00}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:4px;border:1px solid var(--border);
+  background:transparent;color:var(--text);cursor:pointer}
+.btn-sm:hover{background:rgba(255,255,255,.1)}
+.btn-sm:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm.danger{border-color:var(--danger);color:var(--danger)}
+.btn-sm.danger:hover{background:rgba(239,83,80,.15)}
+.btn-xs{padding:2px 6px;font-size:10px;border:none;background:transparent;color:var(--danger);
+  cursor:pointer;border-radius:3px}
+.btn-xs:hover{background:rgba(239,83,80,.2)}
+
+/* Save bar */
+.save-bar{padding:10px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.save-bar .btn{flex:1;justify-content:center}
+
+/* Filter confirm bar */
+.filter-bar{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.filter-bar .filter-info{font-size:11px;color:var(--text2);text-align:center}
+
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
+  align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px)}
+.loading-overlay.show{display:flex}
+.loading-box{background:var(--card);border-radius:16px;padding:30px 40px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Notification */
+.notification{position:fixed;top:20px;right:20px;background:var(--success);color:#fff;
+  padding:12px 20px;border-radius:8px;font-size:13px;z-index:1001;opacity:0;
+  transform:translateY(-10px);transition:all .3s;pointer-events:none}
+.notification.show{opacity:1;transform:translateY(0)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>Rhombic Vertex Annotator</h1>
+  <span class="info">SEM Image Segmentation + Manual Vertex Annotation</span>
+  <div class="stats">
+    <span id="statsTotal">Images: 0</span>
+    <span id="statsDone">Annotated: 0</span>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div id="loadingText" style="font-size:14px;font-weight:600">Processing...</div>
+    <div id="loadingSub" style="font-size:11px;color:var(--text2);margin-top:4px"></div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div class="notification" id="notification"></div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Left: Image list -->
+  <div class="left-panel">
+    <div class="panel-head">Images <span id="imageCount" style="color:var(--text2)"></span></div>
+    <div class="image-list" id="imageList"></div>
+  </div>
+
+  <!-- Center: Canvas -->
+  <div class="center-panel">
+    <div class="canvas-toolbar">
+      <div class="mode-badge select" id="modeBadge">SELECT</div>
+      <div class="toolbar-sep"></div>
+      <div class="coord-display" id="coordDisplay">--</div>
+      <div class="toolbar-sep"></div>
+      <div style="color:var(--text2);font-size:11px" id="zoomDisplay">100%</div>
+      <div class="toolbar-hint" id="toolbarHint">
+        Scroll: Zoom | Middle-drag: Pan | F: Fit | Esc: Deselect
+      </div>
+    </div>
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Right: Annotation panel -->
+  <div class="right-panel">
+    <div class="panel-head" id="rightPanelHead">Detected Rhombics <span id="objCount" style="color:var(--text2)"></span></div>
+    <div class="rhombic-list" id="rhombicList">
+      <div style="color:var(--text2);text-align:center;padding:40px 16px;font-size:13px">
+        Load an image to start annotation
+      </div>
+    </div>
+    <div class="vertex-panel" id="vertexPanel">
+      <div class="vertex-empty">Select a rhombic to annotate vertices</div>
+    </div>
+    <!-- Filter confirm bar (shown during filter mode) -->
+    <div class="filter-bar" id="filterBar" style="display:none">
+      <div class="filter-info" id="filterInfo">Click rhombics to exclude merged ones</div>
+      <button class="btn btn-warn" onclick="confirmFilter()" style="width:100%">Confirm &amp; Start Annotation</button>
+    </div>
+    <!-- Save bar (shown during annotation mode) -->
+    <div class="save-bar" id="saveBar" style="display:none">
+      <button class="btn btn-success" onclick="saveAnnotations()" id="saveBtn">Save</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// Constants
+// ============================================================
+const COLORS = [
+  '#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#FF8C42',
+  '#98D8C8','#F7DC6F','#BB8FCE','#85C1E9','#82E0AA','#F1948A','#AED6F1'
+];
+const VTX_COLORS = [
+  '#FF0000','#00FF00','#0066FF','#FFFF00','#FF00FF','#00FFFF','#FF8800',
+  '#8800FF','#FF0088','#00FF88','#0088FF','#88FF00','#FF4444','#44FF44',
+  '#4444FF','#FF8888','#88FF88','#8888FF','#FFAA00','#00AAFF'
+];
+
+// ============================================================
+// State
+// ============================================================
+let images = [];
+let currentImageName = null;
+let currentImageEl = null;
+let imgW = 0, imgH = 0;
+let segObjects = [];
+let selectedIdx = -1;
+let hoverIdx = -1;
+
+// Mode: 'filter' | 'select' | 'annotate'
+//  filter   = post-segmentation, exclude merged rhombics
+//  select   = pick a rhombic to annotate
+//  annotate = placing vertices on the selected rhombic
+let mode = 'select';
+
+let excludedSet = new Set();     // indices of excluded (merged) rhombics
+let filterConfirmed = false;     // true after user confirms filter step
+
+// annotations: Map<segIdx, {vertices: [{x, y}]}>
+let annotations = new Map();
+let dirty = false;
+
+// Canvas transform
+let scale = 1, offsetX = 0, offsetY = 0;
+let isPanning = false, panStartX = 0, panStartY = 0;
+let mouseImgX = -1, mouseImgY = -1;
+
+// Zoom animation
+let zoomAnimId = null;
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  setupCanvas();
+  await loadImageList();
+}
+
+// ============================================================
+// Image list
+// ============================================================
+async function loadImageList() {
+  try {
+    const res = await fetch('/api/images');
+    const data = await res.json();
+    images = data.images;
+    renderImageList();
+    const nDone = images.filter(i => i.annotated).length;
+    document.getElementById('statsTotal').textContent = `Images: ${images.length}`;
+    document.getElementById('statsDone').textContent = `Annotated: ${nDone}`;
+    document.getElementById('imageCount').textContent = `(${images.length})`;
+  } catch(e) {
+    console.error('Failed to load image list:', e);
+  }
+}
+
+function renderImageList() {
+  const list = document.getElementById('imageList');
+  list.innerHTML = '';
+  if (images.length === 0) {
+    list.innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;font-size:12px">' +
+      'sem_images/ folder is empty.<br>Place SEM images there and refresh.</div>';
+    return;
+  }
+  images.forEach((img, i) => {
+    const el = document.createElement('div');
+    el.className = 'image-item' + (img.name === currentImageName ? ' active' : '');
+    el.innerHTML = `<span class="name" title="${img.name}">${img.name}</span>` +
+      (img.annotated
+        ? `<span class="badge">${img.n_vertices_done}</span>`
+        : `<span class="badge empty">--</span>`);
+    el.onclick = () => loadImage(img.name);
+    list.appendChild(el);
+  });
+}
+
+// ============================================================
+// Load and segment image
+// ============================================================
+async function loadImage(name) {
+  if (dirty && currentImageName) {
+    if (!confirm(`"${currentImageName}" has unsaved changes. Continue?`)) return;
+  }
+
+  currentImageName = name;
+  renderImageList();
+  showLoading('Segmentation...', 'Mask R-CNN processing');
+
+  const fd = new FormData();
+  fd.append('image_name', name);
+
+  try {
+    const res = await fetch('/api/segment', {method: 'POST', body: fd});
+    const data = await res.json();
+    if (data.error) { alert(data.error); hideLoading(); return; }
+
+    imgW = data.width;
+    imgH = data.height;
+    segObjects = data.objects;
+
+    // Reset state
+    annotations = new Map();
+    excludedSet = new Set();
+    selectedIdx = -1;
+    dirty = false;
+
+    // Restore existing annotations if any
+    if (data.existing_annotation) {
+      filterConfirmed = true;
+      // Restore excluded set
+      if (data.existing_annotation.excluded) {
+        for (const idx of data.existing_annotation.excluded) excludedSet.add(idx);
+      }
+      for (const r of data.existing_annotation.rhombics || []) {
+        annotations.set(r.seg_idx, {vertices: r.vertices || []});
+      }
+      mode = 'select';
+    } else {
+      // Enter filter mode for new images
+      filterConfirmed = false;
+      mode = 'filter';
+    }
+
+    currentImageEl = new Image();
+    currentImageEl.onload = () => {
+      hideLoading();
+      fitToCanvas();
+      updateUI();
+      render();
+    };
+    currentImageEl.src = 'data:image/png;base64,' + data.image;
+  } catch(e) {
+    hideLoading();
+    alert('Error: ' + e.message);
+  }
+}
+
+// ============================================================
+// Canvas setup
+// ============================================================
+function setupCanvas() {
+  const container = document.getElementById('canvasContainer');
+  const canvas = document.getElementById('canvas');
+
+  function resize() {
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    if (currentImageEl) render();
+  }
+  new ResizeObserver(resize).observe(container);
+  resize();
+
+  canvas.addEventListener('wheel', onWheel, {passive: false});
+  canvas.addEventListener('mousedown', onMouseDown);
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mouseup', onMouseUp);
+  canvas.addEventListener('mouseleave', onMouseLeave);
+  canvas.addEventListener('click', onClick);
+  canvas.addEventListener('contextmenu', onRightClick);
+  document.addEventListener('keydown', onKeyDown);
+}
+
+function fitToCanvas() {
+  const canvas = document.getElementById('canvas');
+  if (!currentImageEl || !canvas.width) return;
+  const sx = canvas.width / imgW;
+  const sy = canvas.height / imgH;
+  scale = Math.min(sx, sy) * 0.95;
+  offsetX = (canvas.width - imgW * scale) / 2;
+  offsetY = (canvas.height - imgH * scale) / 2;
+}
+
+// Smoothly zoom to a rhombic's bounding box
+function zoomToRhombic(idx) {
+  const obj = segObjects[idx];
+  if (!obj) return;
+  const canvas = document.getElementById('canvas');
+  const b = obj.bbox; // [x1, y1, x2, y2]
+  const bw = b[2] - b[0], bh = b[3] - b[1];
+  const pad = 0.4; // 40% padding around bbox
+  const rx1 = b[0] - bw * pad, ry1 = b[1] - bh * pad;
+  const rw = bw * (1 + 2 * pad), rh = bh * (1 + 2 * pad);
+
+  const targetScale = Math.min(canvas.width / rw, canvas.height / rh);
+  const cx = rx1 + rw / 2, cy = ry1 + rh / 2;
+  const targetOX = canvas.width / 2 - cx * targetScale;
+  const targetOY = canvas.height / 2 - cy * targetScale;
+
+  // Animate
+  const startScale = scale, startOX = offsetX, startOY = offsetY;
+  const duration = 300;
+  const startTime = performance.now();
+
+  if (zoomAnimId) cancelAnimationFrame(zoomAnimId);
+
+  function step(t) {
+    const p = Math.min(1, (t - startTime) / duration);
+    const ease = 1 - Math.pow(1 - p, 3); // ease-out cubic
+    scale = startScale + (targetScale - startScale) * ease;
+    offsetX = startOX + (targetOX - startOX) * ease;
+    offsetY = startOY + (targetOY - startOY) * ease;
+    document.getElementById('zoomDisplay').textContent = (scale * 100).toFixed(0) + '%';
+    render();
+    if (p < 1) zoomAnimId = requestAnimationFrame(step);
+    else zoomAnimId = null;
+  }
+  zoomAnimId = requestAnimationFrame(step);
+}
+
+function screenToImg(sx, sy) {
+  return [(sx - offsetX) / scale, (sy - offsetY) / scale];
+}
+
+function imgToScreen(ix, iy) {
+  return [ix * scale + offsetX, iy * scale + offsetY];
+}
+
+// ============================================================
+// Mouse events
+// ============================================================
+function onWheel(e) {
+  e.preventDefault();
+  const rect = e.target.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const [ix, iy] = screenToImg(mx, my);
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  scale = Math.max(0.05, Math.min(scale * factor, 50));
+  offsetX = mx - ix * scale;
+  offsetY = my - iy * scale;
+  document.getElementById('zoomDisplay').textContent = (scale * 100).toFixed(0) + '%';
+  render();
+}
+
+function onMouseDown(e) {
+  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    isPanning = true;
+    panStartX = e.offsetX - offsetX;
+    panStartY = e.offsetY - offsetY;
+    e.preventDefault();
+  }
+}
+
+function onMouseMove(e) {
+  const rect = e.target.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  [mouseImgX, mouseImgY] = screenToImg(mx, my);
+
+  if (isPanning) {
+    offsetX = e.offsetX - panStartX;
+    offsetY = e.offsetY - panStartY;
+    render();
+    return;
+  }
+
+  if (mode === 'filter' || mode === 'select') {
+    const oldHover = hoverIdx;
+    hoverIdx = findObjectAt(mouseImgX, mouseImgY);
+    if (hoverIdx !== oldHover) render();
+  } else {
+    render(); // redraw crosshair
+  }
+
+  if (mouseImgX >= 0 && mouseImgX <= imgW && mouseImgY >= 0 && mouseImgY <= imgH) {
+    document.getElementById('coordDisplay').textContent =
+      `(${mouseImgX.toFixed(1)}, ${mouseImgY.toFixed(1)})`;
+  } else {
+    document.getElementById('coordDisplay').textContent = '--';
+  }
+}
+
+function onMouseUp(e) {
+  if (e.button === 1 || isPanning) isPanning = false;
+}
+
+function onMouseLeave() {
+  hoverIdx = -1;
+  isPanning = false;
+  mouseImgX = mouseImgY = -1;
+  render();
+}
+
+function onClick(e) {
+  if (isPanning || e.altKey) return;
+  if (e.button !== 0) return;
+
+  const rect = e.target.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const [ix, iy] = screenToImg(mx, my);
+
+  if (mode === 'filter') {
+    const idx = findObjectAt(ix, iy);
+    if (idx >= 0) toggleExclude(idx);
+  } else if (mode === 'select') {
+    const idx = findObjectAt(ix, iy);
+    if (idx >= 0 && !excludedSet.has(idx)) selectRhombic(idx);
+  } else if (mode === 'annotate') {
+    const nearIdx = findNearestVertex(ix, iy, 8 / scale);
+    if (nearIdx >= 0) return;
+    addVertex(selectedIdx, ix, iy);
+  }
+}
+
+function onRightClick(e) {
+  e.preventDefault();
+  if (mode === 'annotate') {
+    const rect = e.target.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const [ix, iy] = screenToImg(mx, my);
+    const nearIdx = findNearestVertex(ix, iy, 12 / scale);
+    if (nearIdx >= 0) {
+      deleteVertex(selectedIdx, nearIdx);
+    } else {
+      deselectRhombic();
+    }
+  }
+}
+
+function onKeyDown(e) {
+  if (e.key === 'Escape') {
+    if (mode === 'annotate') deselectRhombic();
+  } else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    if (mode === 'annotate' && selectedIdx >= 0) undoLastVertex(selectedIdx);
+  } else if (e.key === 'f' || e.key === 'F') {
+    if (document.activeElement === document.body) { fitToCanvas(); render(); }
+  } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    saveAnnotations();
+  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    navigateImage(e.key === 'ArrowDown' ? 1 : -1);
+  } else if (e.key === 'n' || e.key === 'N') {
+    if (mode === 'select' && document.activeElement === document.body) goNextUnannotated();
+  }
+}
+
+function navigateImage(dir) {
+  if (!images.length) return;
+  const curIdx = images.findIndex(i => i.name === currentImageName);
+  const next = Math.max(0, Math.min(images.length - 1, curIdx + dir));
+  if (next !== curIdx) loadImage(images[next].name);
+}
+
+// ============================================================
+// Hit testing
+// ============================================================
+function findObjectAt(imgX, imgY) {
+  for (let i = segObjects.length - 1; i >= 0; i--) {
+    const obj = segObjects[i];
+    const b = obj.bbox;
+    if (imgX >= b[0] && imgX <= b[2] && imgY >= b[1] && imgY <= b[3]) {
+      if (pointInContours(imgX, imgY, obj.contours)) return i;
+    }
+  }
+  return -1;
+}
+
+function pointInContours(x, y, contours) {
+  for (const poly of contours) {
+    if (!Array.isArray(poly) || poly.length < 3 || !Array.isArray(poly[0])) continue;
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi))
+        inside = !inside;
+    }
+    if (inside) return true;
+  }
+  return false;
+}
+
+function findNearestVertex(imgX, imgY, threshold) {
+  if (selectedIdx < 0) return -1;
+  const ann = annotations.get(selectedIdx);
+  if (!ann || !ann.vertices.length) return -1;
+  let minD = Infinity, minI = -1;
+  ann.vertices.forEach((v, i) => {
+    const d = Math.hypot(v.x - imgX, v.y - imgY);
+    if (d < minD) { minD = d; minI = i; }
+  });
+  return minD <= threshold ? minI : -1;
+}
+
+// ============================================================
+// Filter mode (exclude merged rhombics)
+// ============================================================
+function toggleExclude(idx) {
+  if (excludedSet.has(idx)) {
+    excludedSet.delete(idx);
+  } else {
+    excludedSet.add(idx);
+    // Remove any annotation on excluded rhombic
+    annotations.delete(idx);
+  }
+  dirty = true;
+  updateRhombicList();
+  updateFilterInfo();
+  render();
+}
+
+function confirmFilter() {
+  filterConfirmed = true;
+  mode = 'select';
+  fitToCanvas();
+  updateUI();
+  render();
+  const active = segObjects.length - excludedSet.size;
+  showNotification(`Filter confirmed: ${active} rhombics kept, ${excludedSet.size} excluded`);
+}
+
+function excludeRhombic(idx) {
+  excludedSet.add(idx);
+  annotations.delete(idx);
+  dirty = true;
+  // If we just excluded the one we were annotating, go back to select
+  if (selectedIdx === idx) {
+    selectedIdx = -1;
+    mode = 'select';
+    fitToCanvas();
+  }
+  updateUI();
+  render();
+  showNotification(`Rhombic #${idx} excluded`);
+}
+
+function restoreRhombic(idx) {
+  excludedSet.delete(idx);
+  dirty = true;
+  updateUI();
+  render();
+  showNotification(`Rhombic #${idx} restored`);
+}
+
+function reenterFilterMode() {
+  mode = 'filter';
+  selectedIdx = -1;
+  fitToCanvas();
+  updateUI();
+  render();
+}
+
+function updateFilterInfo() {
+  const el = document.getElementById('filterInfo');
+  const active = segObjects.length - excludedSet.size;
+  el.textContent = `${excludedSet.size} excluded / ${active} remaining`;
+}
+
+// ============================================================
+// Annotation operations
+// ============================================================
+function selectRhombic(idx) {
+  if (excludedSet.has(idx)) return;
+  selectedIdx = idx;
+  mode = 'annotate';
+  if (!annotations.has(idx)) annotations.set(idx, {vertices: []});
+  zoomToRhombic(idx);
+  updateUI();
+}
+
+function deselectRhombic() {
+  selectedIdx = -1;
+  mode = 'select';
+  fitToCanvas();
+  updateUI();
+  render();
+}
+
+function goNextUnannotated() {
+  // Find next rhombic that isn't excluded and has no vertices
+  for (let i = 0; i < segObjects.length; i++) {
+    if (excludedSet.has(i)) continue;
+    const ann = annotations.get(i);
+    if (!ann || ann.vertices.length === 0) {
+      selectRhombic(i);
+      return;
+    }
+  }
+  showNotification('All rhombics annotated!');
+}
+
+function addVertex(rhombicIdx, x, y) {
+  if (!annotations.has(rhombicIdx)) annotations.set(rhombicIdx, {vertices: []});
+  annotations.get(rhombicIdx).vertices.push({
+    x: Math.round(x * 10) / 10,
+    y: Math.round(y * 10) / 10
+  });
+  dirty = true;
+  updateVertexPanel();
+  updateRhombicList();
+  render();
+}
+
+function deleteVertex(rhombicIdx, vertexIdx) {
+  const ann = annotations.get(rhombicIdx);
+  if (ann) {
+    ann.vertices.splice(vertexIdx, 1);
+    if (ann.vertices.length === 0) annotations.delete(rhombicIdx);
+    dirty = true;
+    updateVertexPanel();
+    updateRhombicList();
+    render();
+  }
+}
+
+function undoLastVertex(rhombicIdx) {
+  const ann = annotations.get(rhombicIdx);
+  if (ann && ann.vertices.length > 0) {
+    ann.vertices.pop();
+    if (ann.vertices.length === 0) annotations.delete(rhombicIdx);
+    dirty = true;
+    updateVertexPanel();
+    updateRhombicList();
+    render();
+  }
+}
+
+function clearAllVertices(rhombicIdx) {
+  annotations.delete(rhombicIdx);
+  dirty = true;
+  updateVertexPanel();
+  updateRhombicList();
+  render();
+}
+
+// ============================================================
+// Canvas rendering
+// ============================================================
+function render() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (!currentImageEl) {
+    ctx.fillStyle = '#9aa0b0';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Select an image from the left panel', canvas.width / 2, canvas.height / 2);
+    ctx.textAlign = 'start';
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+
+  // Draw image
+  ctx.drawImage(currentImageEl, 0, 0, imgW, imgH);
+
+  // In annotate mode: dim everything except the selected rhombic
+  if (mode === 'annotate' && selectedIdx >= 0) {
+    // Dark overlay on entire image
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, imgW, imgH);
+
+    // "Cut out" the selected rhombic by drawing the original image clipped to its contours
+    const obj = segObjects[selectedIdx];
+    ctx.save();
+    ctx.beginPath();
+    for (const poly of obj.contours) {
+      if (!Array.isArray(poly) || !Array.isArray(poly[0])) continue;
+      ctx.moveTo(poly[0][0], poly[0][1]);
+      for (let k = 1; k < poly.length; k++) ctx.lineTo(poly[k][0], poly[k][1]);
+      ctx.closePath();
+    }
+    ctx.clip();
+    ctx.drawImage(currentImageEl, 0, 0, imgW, imgH);
+    ctx.restore();
+
+    // Bright border around selected rhombic
+    const color = COLORS[selectedIdx % COLORS.length];
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.5, 2.5 / scale);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8 / scale;
+    for (const poly of obj.contours) {
+      if (!Array.isArray(poly) || !Array.isArray(poly[0])) continue;
+      ctx.beginPath();
+      ctx.moveTo(poly[0][0], poly[0][1]);
+      for (let k = 1; k < poly.length; k++) ctx.lineTo(poly[k][0], poly[k][1]);
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+  } else {
+    // Draw segmentation overlays for filter/select modes
+    drawSegOverlays(ctx);
+  }
+
+  // Draw all vertices (just dots, no lines)
+  drawAllVertices(ctx);
+
+  // Draw crosshair in annotate mode
+  if (mode === 'annotate' && mouseImgX >= 0 && mouseImgX <= imgW && mouseImgY >= 0 && mouseImgY <= imgH) {
+    const len = Math.max(8, 20 / scale);
+    const lw = Math.max(0.5, 1 / scale);
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.moveTo(mouseImgX - len, mouseImgY);
+    ctx.lineTo(mouseImgX + len, mouseImgY);
+    ctx.moveTo(mouseImgX, mouseImgY - len);
+    ctx.lineTo(mouseImgX, mouseImgY + len);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(mouseImgX, mouseImgY, Math.max(2, 3 / scale), 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,0,0.8)';
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawSegOverlays(ctx) {
+  for (let i = 0; i < segObjects.length; i++) {
+    const obj = segObjects[i];
+    const isExcl = excludedSet.has(i);
+    const isSel = (i === selectedIdx);
+    const isHov = (i === hoverIdx);
+    const hasVtx = annotations.has(i) && annotations.get(i).vertices.length > 0;
+
+    let alpha, color;
+
+    if (mode === 'filter') {
+      // Filter mode: excluded = red, others = normal
+      if (isExcl) {
+        color = '#ef5350';
+        alpha = isHov ? 0.45 : 0.35;
+      } else {
+        color = COLORS[i % COLORS.length];
+        alpha = isHov ? 0.35 : 0.2;
+      }
+    } else {
+      // Select mode
+      if (isExcl) continue; // don't draw excluded in select mode
+      color = COLORS[i % COLORS.length];
+      alpha = isSel ? 0.4 : isHov ? 0.35 : hasVtx ? 0.25 : 0.18;
+    }
+
+    const c = hexToRgb(color);
+
+    // Fill contours
+    ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},${alpha})`;
+    for (const poly of obj.contours) {
+      if (!Array.isArray(poly) || !Array.isArray(poly[0])) continue;
+      ctx.beginPath();
+      ctx.moveTo(poly[0][0], poly[0][1]);
+      for (let k = 1; k < poly.length; k++) ctx.lineTo(poly[k][0], poly[k][1]);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Stroke
+    const shouldStroke = isSel || isHov || hasVtx || isExcl;
+    if (shouldStroke) {
+      if (isExcl) {
+        ctx.strokeStyle = '#ef5350';
+        ctx.setLineDash([Math.max(3, 6 / scale), Math.max(3, 6 / scale)]);
+      } else {
+        ctx.strokeStyle = isSel ? '#ffffff' : hasVtx ? '#00ff88' : color;
+        ctx.setLineDash([]);
+      }
+      ctx.lineWidth = Math.max(1, (isSel ? 2.5 : 1.5) / scale);
+      for (const poly of obj.contours) {
+        if (!Array.isArray(poly) || !Array.isArray(poly[0])) continue;
+        ctx.beginPath();
+        ctx.moveTo(poly[0][0], poly[0][1]);
+        for (let k = 1; k < poly.length; k++) ctx.lineTo(poly[k][0], poly[k][1]);
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    // Label
+    const fs = Math.max(8, 12 / scale);
+    ctx.font = `bold ${fs}px sans-serif`;
+    if (isExcl && mode === 'filter') {
+      ctx.fillStyle = '#ef5350';
+      ctx.fillText(`#${i} EXCLUDED`, obj.cx - 20 / scale, obj.cy + 4 / scale);
+    } else if (hasVtx) {
+      const nv = annotations.get(i).vertices.length;
+      ctx.fillStyle = '#00ff88';
+      ctx.fillText(`#${i} (${nv}v)`, obj.cx + 8 / scale, obj.cy + 4 / scale);
+    } else if (isHov || isSel) {
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = Math.max(1, 2 / scale);
+      ctx.strokeText(`#${i}`, obj.cx + 8 / scale, obj.cy + 4 / scale);
+      ctx.fillText(`#${i}`, obj.cx + 8 / scale, obj.cy + 4 / scale);
+    }
+  }
+}
+
+function drawAllVertices(ctx) {
+  for (const [rIdx, ann] of annotations) {
+    const isActive = (rIdx === selectedIdx);
+    const vertices = ann.vertices;
+    if (!vertices.length) continue;
+
+    // In annotate mode, only draw vertices of the active rhombic
+    if (mode === 'annotate' && !isActive) continue;
+
+    const r = Math.max(3, 5 / scale);
+    const alpha = isActive ? 1.0 : 0.5;
+
+    // Vertex dots only (no connecting lines)
+    ctx.globalAlpha = alpha;
+    for (let k = 0; k < vertices.length; k++) {
+      const v = vertices[k];
+      const vc = VTX_COLORS[k % VTX_COLORS.length];
+
+      ctx.beginPath();
+      ctx.arc(v.x, v.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = vc;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(0.8, 1.2 / scale);
+      ctx.stroke();
+
+      // Label
+      if (isActive) {
+        const fs = Math.max(7, 10 / scale);
+        ctx.font = `bold ${fs}px sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.lineWidth = Math.max(0.5, 1.5 / scale);
+        const label = `V${k}`;
+        ctx.strokeText(label, v.x + r * 1.8, v.y - r * 1.2);
+        ctx.fillText(label, v.x + r * 1.8, v.y - r * 1.2);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function hexToRgb(hex) {
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16)
+  };
+}
+
+// ============================================================
+// UI updates
+// ============================================================
+function updateUI() {
+  updateModeBadge();
+  updateBars();
+  updateRhombicList();
+  updateVertexPanel();
+}
+
+function updateModeBadge() {
+  const badge = document.getElementById('modeBadge');
+  if (mode === 'filter') {
+    badge.className = 'mode-badge filter';
+    badge.textContent = 'FILTER';
+    document.getElementById('toolbarHint').textContent =
+      'Click merged rhombics to exclude | Then "Confirm" to start annotation';
+  } else if (mode === 'select') {
+    badge.className = 'mode-badge select';
+    badge.textContent = 'SELECT';
+    document.getElementById('toolbarHint').textContent =
+      'Click rhombic to annotate | N: Next unannotated | F: Fit | Scroll: Zoom';
+  } else {
+    badge.className = 'mode-badge annotate';
+    badge.textContent = `ANNOTATE #${selectedIdx}`;
+    document.getElementById('toolbarHint').textContent =
+      'Click: Place vertex | Right-click vertex: Delete | Ctrl+Z: Undo | Esc: Done';
+  }
+}
+
+function updateBars() {
+  const filterBar = document.getElementById('filterBar');
+  const saveBar = document.getElementById('saveBar');
+  if (mode === 'filter') {
+    filterBar.style.display = 'flex';
+    saveBar.style.display = 'none';
+    updateFilterInfo();
+  } else {
+    filterBar.style.display = 'none';
+    saveBar.style.display = 'flex';
+  }
+}
+
+function updateRhombicList() {
+  const list = document.getElementById('rhombicList');
+  const countEl = document.getElementById('objCount');
+  const headEl = document.getElementById('rightPanelHead');
+
+  if (!segObjects.length) {
+    list.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px 16px;font-size:13px">' +
+      'Load an image to see segmented rhombics</div>';
+    countEl.textContent = '';
+    return;
+  }
+
+  const activeCount = segObjects.length - excludedSet.size;
+
+  if (mode === 'filter') {
+    headEl.innerHTML = `Filter Rhombics <span style="color:var(--text2)">(${segObjects.length} total)</span>`;
+  } else {
+    headEl.innerHTML = `Rhombics <span style="color:var(--text2)">(${activeCount} active)</span>`;
+  }
+
+  list.innerHTML = '';
+
+  segObjects.forEach((obj, i) => {
+    const isExcl = excludedSet.has(i);
+    const ann = annotations.get(i);
+    const nv = ann ? ann.vertices.length : 0;
+    const isSel = (i === selectedIdx);
+
+    const el = document.createElement('div');
+    el.className = 'rhombic-item'
+      + (isSel ? ' active' : '')
+      + (nv > 0 ? ' has-vertices' : '')
+      + (isExcl ? ' excluded' : '');
+
+    if (mode === 'filter') {
+      el.innerHTML = `
+        <div class="rhombic-header">
+          <span class="rhombic-idx" style="color:${isExcl ? 'var(--danger)' : COLORS[i % COLORS.length]}">#${i}</span>
+          <span class="rhombic-score">score: ${obj.score.toFixed(3)} | area: ${obj.area}px</span>
+          ${isExcl ? '<span class="rhombic-excl-badge">EXCLUDED</span>' : ''}
+        </div>`;
+      el.onclick = () => toggleExclude(i);
+    } else if (isExcl) {
+      // Show excluded items at bottom with restore button
+      el.innerHTML = `
+        <div class="rhombic-header">
+          <span class="rhombic-idx" style="color:var(--danger)">#${i}</span>
+          <span class="rhombic-excl-badge">EXCLUDED</span>
+          <button class="btn-sm" onclick="event.stopPropagation(); restoreRhombic(${i})" style="margin-left:auto;font-size:10px;padding:2px 8px">Restore</button>
+        </div>`;
+    } else {
+      el.innerHTML = `
+        <div class="rhombic-header">
+          <span class="rhombic-idx" style="color:${COLORS[i % COLORS.length]}">#${i}</span>
+          <span class="rhombic-score">score: ${obj.score.toFixed(3)}</span>
+          ${nv > 0 ? `<span class="rhombic-vcount">${nv}v</span>` : ''}
+          <button class="btn-sm danger" onclick="event.stopPropagation(); excludeRhombic(${i})" style="margin-left:auto;font-size:10px;padding:2px 8px">Exclude</button>
+        </div>`;
+      el.onclick = (e) => { if (e.target.tagName === 'BUTTON') return; selectRhombic(i); };
+      el.onmouseenter = () => { if (mode === 'select') { hoverIdx = i; render(); } };
+      el.onmouseleave = () => { if (mode === 'select') { hoverIdx = -1; render(); } };
+    }
+
+    list.appendChild(el);
+  });
+}
+
+function updateVertexPanel() {
+  const panel = document.getElementById('vertexPanel');
+
+  if (mode === 'filter') {
+    panel.innerHTML = '<div class="vertex-empty">Exclude merged rhombics first, then confirm</div>';
+    return;
+  }
+
+  if (selectedIdx < 0) {
+    panel.innerHTML = '<div class="vertex-empty">Select a rhombic to annotate vertices</div>';
+    return;
+  }
+
+  const ann = annotations.get(selectedIdx);
+  const vertices = ann ? ann.vertices : [];
+
+  let html = `<div class="vertex-panel-head">
+    <span style="color:${COLORS[selectedIdx % COLORS.length]}">Rhombic #${selectedIdx}</span>
+    <span style="color:var(--text2);margin-left:4px">(${vertices.length} vertices)</span>
+    <div class="actions">
+      <button class="btn-sm" onclick="undoLastVertex(${selectedIdx})" ${vertices.length === 0 ? 'disabled' : ''}>
+        Undo
+      </button>
+      <button class="btn-sm danger" onclick="clearAllVertices(${selectedIdx})" ${vertices.length === 0 ? 'disabled' : ''}>
+        Clear
+      </button>
+      <button class="btn-sm" onclick="deselectRhombic()">Done</button>
+    </div>
+  </div>`;
+
+  if (vertices.length > 0) {
+    html += '<table class="vertex-table"><thead><tr><th>#</th><th>X (px)</th><th>Y (px)</th><th></th></tr></thead><tbody>';
+    vertices.forEach((v, k) => {
+      html += `<tr>
+        <td style="text-align:left;color:${VTX_COLORS[k % VTX_COLORS.length]};font-weight:600">V${k}</td>
+        <td>${v.x.toFixed(1)}</td>
+        <td>${v.y.toFixed(1)}</td>
+        <td><button class="btn-xs" onclick="deleteVertex(${selectedIdx},${k})" title="Delete">x</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  } else {
+    html += '<div class="vertex-empty">Click on the image to place vertices</div>';
+  }
+
+  panel.innerHTML = html;
+}
+
+// ============================================================
+// Save
+// ============================================================
+async function saveAnnotations() {
+  if (!currentImageName) return;
+
+  const data = {
+    image_name: currentImageName,
+    image_width: imgW,
+    image_height: imgH,
+    excluded: [...excludedSet],
+    rhombics: []
+  };
+
+  for (const [segIdx, ann] of annotations) {
+    if (!ann.vertices.length) continue;
+    if (excludedSet.has(segIdx)) continue;
+    const obj = segObjects[segIdx];
+    data.rhombics.push({
+      seg_idx: segIdx,
+      score: obj.score,
+      bbox: obj.bbox,
+      center: [obj.cx, obj.cy],
+      area: obj.area,
+      contour: obj.contours,
+      vertices: ann.vertices,
+    });
+  }
+
+  const fd = new FormData();
+  fd.append('data', JSON.stringify(data));
+
+  try {
+    const res = await fetch('/api/save', {method: 'POST', body: fd});
+    const result = await res.json();
+    if (result.status === 'saved') {
+      dirty = false;
+      showNotification(`Saved: ${data.rhombics.length} rhombics, ${data.excluded.length} excluded`);
+      await loadImageList();
+    } else {
+      alert('Save error: ' + (result.error || 'unknown'));
+    }
+  } catch(e) {
+    alert('Save error: ' + e.message);
+  }
+}
+
+// ============================================================
+// Loading / Notification
+// ============================================================
+function showLoading(text, sub) {
+  document.getElementById('loadingText').textContent = text || 'Processing...';
+  document.getElementById('loadingSub').textContent = sub || '';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+let notifTimer = null;
+function showNotification(msg) {
+  const el = document.getElementById('notification');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// Start
+// ============================================================
+init();
+</script>
+</body>
+</html>

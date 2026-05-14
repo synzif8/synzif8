@@ -1,0 +1,40 @@
+experiment: seg_exp07_maskrcnn_v6_improved
+data:
+  sem_dir: <DATA_ROOT>/dataset_v6_sem
+  mask_dir: <DATA_ROOT>/dataset_v6
+  image_size: [1024, 686]
+  train_scenes: [0, 15999]
+  val_scenes: [16000, 17999]
+  test_scenes: [18000, 19999]
+model:
+  name: maskrcnn_resnet50_fpn_v2
+  pretrained: COCO
+  num_classes: 2
+  # RPN tuning for dense scenes (avg 25 objects/scene)
+  rpn_pre_nms_top_n_train: 4000
+  rpn_post_nms_top_n_train: 2000
+  rpn_pre_nms_top_n_test: 2000
+  rpn_post_nms_top_n_test: 1000
+  box_nms_thresh: 0.5
+  box_detections_per_img: 150
+train:
+  epochs: 120
+  batch_size: 16
+  lr: 0.01
+  warmup_iters: 1000
+  warmup_factor: 0.001
+  weight_decay: 0.0005
+  momentum: 0.9
+  scheduler: cosine
+  gpu: [0, 1, 2, 3]
+augmentation:
+  horizontal_flip: 0.5
+  vertical_flip: 0.5
+  brightness_range: [0.8, 1.2]
+  contrast_range: [0.8, 1.2]
+  gaussian_noise_std: 0.02
+paths:
+  models: models/
+  tensorboard: tensorboard/
+  scene_viz: scene_viz/
+  results: results.json
